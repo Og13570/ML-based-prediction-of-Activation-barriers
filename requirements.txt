@@ -1,8 +1,10 @@
-numpy
-pandas>=2.0
-scikit-learn>=1.2
-xgboost>=2.1.4
-openpyxl
-matplotlib
-joblib
+# Versions the notebook was tested with (Python 3.11).
+# Older versions also work: pandas>=2.0, scikit-learn>=1.2, xgboost>=2.1.4, matplotlib>=3.6
+numpy==2.4.6
+pandas==3.0.6
+scikit-learn==1.9.1
+xgboost==3.2.0
+openpyxl==3.1.5
+matplotlib==3.11.2
+joblib==1.6.0
 jupyter

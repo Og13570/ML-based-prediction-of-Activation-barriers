@@ -28,13 +28,21 @@ Columns that are zero for every row (`delta_n_O`, `delta_n_H`) are dropped autom
 
 ## Workflow (notebook)
 
-1. **Data processing** — drop identifier columns, fill missing vdW correction with `None`, one-hot
-   encode categorical columns, 90/10 train/test split (`random_state=42`).
+1. **Data processing** — one function, `prepare_features`, is used for both the training and the
+   validation data: it drops the identifier columns, fills a missing vdW correction with `None`,
+   drops the all-zero columns and one-hot encodes the categorical columns using the encoder fitted
+   on the training data. The data is then split 90/10 into train/test (`random_state=42`), either
+   randomly or by reaction group (see `SPLIT_BY_GROUP`).
 2. **Hyperparameter optimization** — 5-fold `GridSearchCV` (scoring: MAE) for
    LR, RFR, GBR, XGBR, DTR, ETR, SVR, KRR, KNN and GPR. Each model runs inside a
-   `StandardScaler → model` pipeline.
-3. **Validation** — predict the Ni / NiB C2 reactions with the best estimator of every algorithm
-   and plot ML vs. DFT barriers.
+   `StandardScaler → model` pipeline. GBR picks its number of trees by early stopping, and
+   hyperparameters that do not change a model (e.g. `degree` for non-polynomial kernels) are not
+   searched.
+3. **Evaluation** — MAE, RMSE and R² of every best model on the train, held-out test and Ni/NiB
+   validation data; parity plots of the test set; permutation feature importance of the best
+   model.
+4. **Validation plots** — predict the Ni / NiB C2 reactions with every model and plot ML vs. DFT
+   barriers.
 
 ## Getting started
 
@@ -49,12 +57,14 @@ Settings in section **0.1 Run Settings** of the notebook:
 
 | Setting | Default | Meaning |
 |---------|---------|---------|
-| `QUICK_RUN` | `False` | `True` uses only the first value of each hyperparameter, so the whole notebook runs in a few minutes — use it to check your setup before the full search |
+| `QUICK_RUN` | `False` | `True` uses only the first value of each hyperparameter, so the whole notebook runs in about a minute — use it to check your setup before the full search |
 | `SCALE_FEATURES` | `True` | Standardize features inside the pipeline (needed for SVR, KRR, KNN, GPR; no effect on tree models) |
+| `SPLIT_BY_GROUP` | `False` | `True` keeps all rows of the same reaction on the same metal surface (computed with different functionals / vdW corrections) together in train or test and in the CV folds. This gives a more honest error for new reaction–surface combinations. `False` is a random split |
 | `N_JOBS` | `-1` | CPU cores used by `GridSearchCV` |
+| `FIGURE_DPI` | `300` | Resolution of the saved figures |
+| `RANDOM_STATE` | `42` | Seed for the split and the models |
 
-The full grid search takes hours (the XGBR grid alone is 1800 combinations × 5 folds). To run it
-unattended:
+To run the full search unattended:
 
 ```bash
 pip install papermill
@@ -69,6 +79,9 @@ papermill 1st_90_10_Model_1_Hyperparameter.ipynb output.ipynb
 | `Best_Models.xlsx` / `.csv` | Best CV score and hyperparameters per algorithm |
 | `All_GridSearch_Results.xlsx` / `.csv` | CV train/test score of every hyperparameter combination |
 | `Best_Estimators.joblib` | Fitted best model per algorithm (`joblib.load("Best_Estimators.joblib")`) |
+| `Model_Performance.xlsx` | MAE / RMSE / R² of every model on train, test and validation data |
+| `Parity_Test_Set.jpg` | DFT vs. ML parity plot of the test set for every model |
+| `Feature_Importance.xlsx` / `.jpg` | Permutation feature importance of the best model |
 | `Prediction_Validation_Data_with_Descriptor.xlsx` | DFT vs. predicted barriers for the Ni / NiB validation reactions |
 | `Ni NiB Comparison <model>.jpg`, `DFT ML Comparison <model>.jpg` | Comparison plots |
 
